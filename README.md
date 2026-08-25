@@ -96,6 +96,7 @@ https://:443 {
 
 ## 常见坑
 
+- **dsh 0.1.1-rc.x + `dsh-better-sidebar` ≤ 0.15.2 渲染报错** `cannot get property "betterSidebar" without inject`(浏览器控制台 `[dsh-better-sidebar] render error: …`,右侧栏空白/错误条)。根因:dsh 0.1.1 的浏览器端插件加载器下,插件 client 的 `ctx.provide("betterSidebar", …)` 注册到的 fiber 不在插件 apply ctx 的 parent 链上(实测 owner fiber ≠ apply ctx 的 fiber),插件自己渲染时读 `ctx.betterSidebar`(源码 27 处)被 cordis 的 inject 语义拦截。插件自己的 `inject` 也不能加 `betterSidebar` —— fiber 会等服务就绪才执行 apply,而该服务要等 apply 才 provide,死锁。上游 issue #135(dsh-web-mobile 场景,已关)确认过同一机制并做过部分修复(改为传 service 实例 + `ctx.get()`),但 web 端渲染路径仍留直读;**0.15.2 在 npm 版 dsh 0.1.1-rc.2 实测同样必现**(#321 报"侧边栏正常"系源码启动环境,不适用)。本地修复:改 profile 下 `node_modules/dsh-better-sidebar/lib/client.js`,`ctx.provide("betterSidebar", service)` 之后把 service 存进模块级变量,并将全部 `ctx.betterSidebar` 读访问替换为该变量的 getter(已验证报错消失、侧边栏正常);重装/升级插件会丢,需重打。已向上游提 [issue #356](https://github.com/omdsh-dev/DSH-better-sidebar/issues/356) + [PR #357](https://github.com/omdsh-dev/DSH-better-sidebar/pull/357)(内部读改 `ctx.get("betterSidebar")`,831 测试全绿 + 实测通过),合并发版后升级插件并移除本地补丁。
 - **patch 整体替换 config**:只写一个字段会把其余字段(端口表达式等)全部清掉,导致端口回落默认值。
 - **Caddy `admin off`**:`reload` 失败,只能 `restart`。
 - **dsh 升级后**:回来验证 auth-gateway 的浏览器补丁是否仍兼容(不兼容时浏览器控制台显式报错,设置页退回 "unavailable"),以及各插件 peer 范围。
