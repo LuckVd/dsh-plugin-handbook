@@ -14,7 +14,7 @@
   本轮运行失败 429: {"message":"Allocated quota exceeded, please increase your quota limit.","type":"invalid_request_error","code":"insufficient_quota"}
   ```
 
-- 但用户在商汤控制台看到各模型配额 **96%–100% 剩余**（deepseek-v4-flash 96.20%、glm-5.2 99.33%、其它 100%），**配额明明充足**。
+- 但用户查询商汤控制台，各模型配额均显示剩余充足，**与报错矛盾**。
 
 ## 二、排查过程
 
